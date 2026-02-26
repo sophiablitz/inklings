@@ -14,10 +14,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.ink.authoring.compose.InProgressStrokes
 import androidx.ink.brush.Brush
 import androidx.ink.brush.StockBrushes
+import androidx.ink.brush.compose.createWithComposeColor
 import androidx.ink.rendering.android.canvas.CanvasStrokeRenderer
 import androidx.ink.strokes.Stroke
 
@@ -27,12 +29,14 @@ fun DrawingScreen() {
     var selectedColor by remember { mutableStateOf(Color.Black) }
     var brushSize by remember { mutableFloatStateOf(5f) }
 
-    val currentBrush = remember(selectedColor, brushSize) {
-        Brush.createWithComposeColor(
-            family = StockBrushes.pressure(),
-            colorIntArgb = selectedColor.toArgb(),
-            size = brushSize,
-            epsilon = 0.1f
+    var currentBrush by remember(selectedColor, brushSize) {
+        mutableStateOf(
+            Brush.createWithComposeColor(
+                family = StockBrushes.pressurePen(),
+                color = selectedColor,
+                size = brushSize,
+                epsilon = 0.1f
+            )
         )
     }
 
@@ -43,8 +47,12 @@ fun DrawingScreen() {
             DrawingToolbar(
                 selectedColor = selectedColor,
                 selectedSize = brushSize,
-                onColorSelected = { selectedColor = it },
-                onSizeSelected = { brushSize = it },
+                onColorSelected = {
+                    selectedColor = it
+                },
+                onSizeSelected = {
+                    brushSize = it
+                },
                 onClear = { finishedStrokes = emptyList() }
             )
         }
@@ -54,22 +62,29 @@ fun DrawingScreen() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Dry layer: render completed strokes
+            // Dry layer: render completed strokes onto the native Android Canvas
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val identityMatrix = Matrix()
-                finishedStrokes.forEach { stroke ->
-                    canvasStrokeRenderer.draw(
-                        stroke = stroke,
-                        canvas = drawContext.canvas.nativeCanvas,
-                        strokeToScreenTransform = identityMatrix
-                    )
+                drawIntoCanvas { composeCanvas ->
+                    finishedStrokes.forEach { stroke ->
+                        canvasStrokeRenderer.draw(
+                            stroke = stroke,
+                            canvas = composeCanvas.nativeCanvas,
+                            strokeToScreenTransform = identityMatrix
+                        )
+                    }
                 }
             }
 
             // Wet layer: capture touch input and render the active stroke
             InProgressStrokes(
-                modifier = Modifier.fillMaxSize(),
                 defaultBrush = currentBrush,
+                nextBrush = { Brush.createWithComposeColor(
+                    family = StockBrushes.pressurePen(),
+                    color = selectedColor,
+                    size = brushSize,
+                    epsilon = 0.1f
+                )},
                 onStrokesFinished = { newStrokes ->
                     finishedStrokes = finishedStrokes + newStrokes
                 }
