@@ -28,11 +28,12 @@ fun DrawingScreen() {
     var finishedStrokes by remember { mutableStateOf<List<Stroke>>(emptyList()) }
     var selectedColor by remember { mutableStateOf(Color.Black) }
     var brushSize by remember { mutableFloatStateOf(5f) }
+    var brushFamily by remember { mutableStateOf(StockBrushes.pressurePen()) }
 
-    var currentBrush by remember(selectedColor, brushSize) {
+    var currentBrush by remember(brushFamily, selectedColor, brushSize) {
         mutableStateOf(
             Brush.createWithComposeColor(
-                family = StockBrushes.pressurePen(),
+                family = brushFamily,
                 color = selectedColor,
                 size = brushSize,
                 epsilon = 0.1f
@@ -47,11 +48,15 @@ fun DrawingScreen() {
             DrawingToolbar(
                 selectedColor = selectedColor,
                 selectedSize = brushSize,
+                selectedBrushFamily = brushFamily,
                 onColorSelected = {
                     selectedColor = it
                 },
                 onSizeSelected = {
                     brushSize = it
+                },
+                onBrushFamilySelected = {
+                    brushFamily = it
                 },
                 onClear = { finishedStrokes = emptyList() }
             )
@@ -80,7 +85,7 @@ fun DrawingScreen() {
             InProgressStrokes(
                 defaultBrush = currentBrush,
                 nextBrush = { Brush.createWithComposeColor(
-                    family = StockBrushes.pressurePen(),
+                    family = brushFamily,
                     color = selectedColor,
                     size = brushSize,
                     epsilon = 0.1f

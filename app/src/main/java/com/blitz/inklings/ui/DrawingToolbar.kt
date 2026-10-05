@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -34,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.ink.brush.BrushFamily
+import androidx.ink.brush.StockBrushes
 
 data class BrushSize(val label: String, val size: Float)
 
@@ -53,15 +56,27 @@ val brushColors = listOf(
     Color(0xFF8800CC),   // Purple
 )
 
+data class StockBrushItem(val label: String, val family: BrushFamily)
+
+val stockBrushes = listOf(
+    StockBrushItem("Pressure Pen", StockBrushes.pressurePen()),
+    StockBrushItem("Marker", StockBrushes.marker()),
+    StockBrushItem("Highlighter", StockBrushes.highlighter()),
+    StockBrushItem("Dashed Line", StockBrushes.dashedLine()),
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawingToolbar(
     selectedColor: Color,
     selectedSize: Float,
+    selectedBrushFamily: BrushFamily,
     onColorSelected: (Color) -> Unit,
     onSizeSelected: (Float) -> Unit,
+    onBrushFamilySelected: (BrushFamily) -> Unit,
     onClear: () -> Unit,
 ) {
+    var brushMenuExpanded by remember { mutableStateOf(false) }
     var colorMenuExpanded by remember { mutableStateOf(false) }
     var sizeMenuExpanded by remember { mutableStateOf(false) }
 
@@ -71,6 +86,28 @@ fun DrawingToolbar(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         actions = {
+            // Brush selection button
+            Box {
+                TextButton(onClick = { brushMenuExpanded = true }) {
+                    Text(stockBrushes.find { it.family == selectedBrushFamily }?.label ?: "Brush")
+                }
+                DropdownMenu(
+                    expanded = brushMenuExpanded,
+                    onDismissRequest = { brushMenuExpanded = false }
+                ) {
+                    stockBrushes.forEach { brushItem ->
+                        DropdownMenuItem(
+                            text = { Text(brushItem.label) },
+                            onClick = {
+                                onBrushFamilySelected(brushItem.family)
+                                brushMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
             // Color chip button
             Box {
                 Box(
